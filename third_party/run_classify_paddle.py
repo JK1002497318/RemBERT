@@ -29,6 +29,11 @@ from torch.utils.data import RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+
+from rem.modeling import RemBertForSequenceClassification
+from rem.tokenizer import RemBertTokenizer
+
+
 from transformers import (
     WEIGHTS_NAME,
     AdamW,

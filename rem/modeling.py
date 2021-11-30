@@ -285,11 +285,11 @@ class RemBertForSequenceClassification(RemBertPretrainedModel):
     """
     Model for sentence (pair) classification task with BERT.
     Args:
-        bert (BertModel): An instance of BertModel.
+        rembert (RemBertModel): An instance of BertModel.
         num_classes (int, optional): The number of classes. Default 2
-        dropout (float, optional): The dropout probability for output of BERT.
-            If None, use the same value as `hidden_dropout_prob` of `BertModel`
-            instance `bert`. Default None
+        dropout (float, optional): The dropout probability for output of RemBERT.
+            If None, use the same value as `hidden_dropout_prob` of `RemBertModel`
+            instance `rembert`. Default None
     """
 
     def __init__(self, rembert, num_classes=3, dropout=None):
@@ -297,7 +297,7 @@ class RemBertForSequenceClassification(RemBertPretrainedModel):
         self.num_classes = num_classes
         self.rembert = rembert  # allow bert to be config
         self.dropout = nn.Dropout(dropout if dropout is not None else
-                                  self.rembert.config["classifier_dropout_prob"])
+                                  self.rembert.config["embedding_dropout_prob"])
         self.classifier = nn.Linear(self.rembert.config["hidden_size"],
                                     num_classes)
         self.apply(self.init_weights)

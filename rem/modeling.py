@@ -41,7 +41,7 @@ ACT2FN = {
 
 class RemBertPretrainedModel(PretrainedModel):
     """
-    An abstract class for pretrained BERT models. It provides BERT related
+    An abstract class for pretrained RemBERT models. It provides RemBERT related
     `model_config_file`, `resource_files_names`, `pretrained_resource_files_map`,
     `pretrained_init_configuration`, `base_model_prefix` for downloading and
     loading pretrained models. See `PretrainedModel` for more details.
@@ -96,7 +96,7 @@ class RemBertPretrainedModel(PretrainedModel):
                         mean=0.0,
                         std=self.initializer_range
                         if hasattr(self, "initializer_range") else
-                        self.bert.config["initializer_range"],
+                        self.rembert.config["initializer_range"],
                         shape=layer.weight.shape))
         elif isinstance(layer, nn.LayerNorm):
             layer._epsilon = 1e-12
@@ -105,7 +105,7 @@ class RemBertPretrainedModel(PretrainedModel):
 @register_base_model
 class RemBertModel(RemBertPretrainedModel):
     """
-    The bare BERT Model transformer outputting raw hidden-states without any specific head on top.
+    The bare RemBERT Model transformer outputting raw hidden-states without any specific head on top.
 
     This model inherits from :class:`~paddlenlp.transformers.model_utils.PretrainedModel`.
     Check the superclass documentation for the generic methods and the library implements for all its model.
@@ -284,7 +284,7 @@ class RemBertPooler(Layer):
 
 class RemBertForSequenceClassification(RemBertPretrainedModel):
     """
-    Model for sentence (pair) classification task with BERT.
+    Model for sentence (pair) classification task with RemBERT.
     Args:
         rembert (RemBertModel): An instance of BertModel.
         num_classes (int, optional): The number of classes. Default 2
@@ -296,7 +296,7 @@ class RemBertForSequenceClassification(RemBertPretrainedModel):
     def __init__(self, rembert, num_classes=3, dropout=None):
         super(RemBertForSequenceClassification, self).__init__()
         self.num_classes = num_classes
-        self.rembert = rembert  # allow bert to be config
+        self.rembert = rembert  # allow rembert to be config
         self.dropout = nn.Dropout(dropout if dropout is not None else
                                   self.rembert.config["classifier_dropout_prob"])
         self.classifier = nn.Linear(self.rembert.config["hidden_size"],

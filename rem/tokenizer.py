@@ -24,10 +24,10 @@ import unicodedata
 import sentencepiece as spm
 
 from paddlenlp.transformers import PretrainedTokenizer
+from paddlenlp.data.vocab import Vocab
 from paddlenlp.transformers.tokenizer_utils import convert_to_unicode, whitespace_tokenize, _is_whitespace, _is_control, _is_punctuation
 
 __all__ = ['RemBertTokenizer']
-
 
 
 class RemBertTokenizer(PretrainedTokenizer):
@@ -56,7 +56,7 @@ class RemBertTokenizer(PretrainedTokenizer):
             # the following line get: 'he was a puppeteer'
             tokenizer.convert_tokens_to_string(tokens)
     """
-    resource_files_names = {"vocab_file": "vocab.txt"}  # for save_pretrained
+    resource_files_names = {"vocab_file": "sentencepiece.model"}  # for save_pretrained
     pretrained_resource_files_map = {
         "vocab_file": {}
     }
@@ -78,33 +78,17 @@ class RemBertTokenizer(PretrainedTokenizer):
         mask_token="[MASK]",
         **kwargs
     ):
-        super().__init__(
-            do_lower_case=do_lower_case,
-            remove_space=remove_space,
-            keep_accents=keep_accents,
-            bos_token=bos_token,
-            eos_token=eos_token,
-            unk_token=unk_token,
-            sep_token=sep_token,
-            pad_token=pad_token,
-            cls_token=cls_token,
-            mask_token=mask_token,
-            **kwargs,
-        )
-        if not os.path.isfile(vocab_file):
-            raise ValueError(
-                "Can't find a vocabulary file at path '{}'. To load the "
-                "vocabulary from a pretrained model please use "
-                "`tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`"
-                .format(vocab_file))
-        self.vocab = self.load_vocabulary(vocab_file, unk_token=unk_token)
         self.do_lower_case = do_lower_case
         self.remove_space = remove_space
         self.keep_accents = keep_accents
         self.vocab_file = vocab_file
-
         self.sp_model = spm.SentencePieceProcessor()
         self.sp_model.Load(vocab_file)
+        self.unk_token = unk_token
+        self.pad_token = pad_token
+        self.bos_token = bos_token
+        self.eos_token = eos_token
+        self.vocab = self.get_vocab()
 
     @property
     def vocab_size(self):
@@ -114,6 +98,17 @@ class RemBertTokenizer(PretrainedTokenizer):
             int: the size of vocabulary.
         """
         return len(self.sp_model)
+
+    def get_vocab(self):
+        token_to_idx = {self.sp_model.IdToPiece(i): i for i in range(self.vocab_size)}
+        vocab = Vocab.from_dict(
+            token_to_idx,
+            unk_token=self.unk_token,
+            pad_token=self.pad_token,
+            bos_token=self.bos_token,
+            eos_token=self.eos_token,
+            )
+        return vocab
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -293,3 +288,9 @@ class RemBertTokenizer(PretrainedTokenizer):
             return [1] + ([0] * len(token_ids_0)) + [1] + (
                 [0] * len(token_ids_1)) + [1]
         return [1] + ([0] * len(token_ids_0)) + [1]
+
+
+if __name__ == "__main__":
+    tokenizer = RemBertTokenizer.from_pretrained("../rembert")
+    sentence = "Welcome to use paddlepaddle and paddleNLP!"
+    print(tokenizer(sentence))

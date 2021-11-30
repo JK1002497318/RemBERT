@@ -297,7 +297,7 @@ class RemBertForSequenceClassification(RemBertPretrainedModel):
         self.num_classes = num_classes
         self.rembert = rembert  # allow bert to be config
         self.dropout = nn.Dropout(dropout if dropout is not None else
-                                  self.rembert.config["embedding_dropout_prob"])
+                                  self.rembert.config["classifier_dropout_prob"])
         self.classifier = nn.Linear(self.rembert.config["hidden_size"],
                                     num_classes)
         self.apply(self.init_weights)

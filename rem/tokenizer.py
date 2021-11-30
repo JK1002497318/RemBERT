@@ -26,201 +26,8 @@ import sentencepiece as spm
 from paddlenlp.transformers import PretrainedTokenizer
 from paddlenlp.transformers.tokenizer_utils import convert_to_unicode, whitespace_tokenize, _is_whitespace, _is_control, _is_punctuation
 
-__all__ = ['BasicTokenizer', 'RemBertTokenizer', 'WordpieceTokenizer']
+__all__ = ['RemBertTokenizer']
 
-
-class BasicTokenizer(object):
-    """
-    Runs basic tokenization (punctuation splitting, lower casing, etc.).
-    Args:
-        do_lower_case (bool): Whether the text strips accents and convert to
-            lower case. If you use the RemBERT Pretrained model, lower is set to
-            Flase when using the cased model, otherwise it is set to True.
-            Default: True.
-    """
-
-    def __init__(self, do_lower_case=True):
-        """Constructs a BasicTokenizer."""
-
-        self.do_lower_case = do_lower_case
-
-    def tokenize(self, text):
-        """
-        Tokenizes a piece of text using basic tokenizer.
-        Args:
-            text (str): A piece of text.
-        Returns: 
-            list(str): A list of tokens.
-        """
-        text = convert_to_unicode(text)
-        text = self._clean_text(text)
-        text = self._tokenize_chinese_chars(text)
-
-        orig_tokens = whitespace_tokenize(text)
-        split_tokens = []
-        for token in orig_tokens:
-            if self.do_lower_case:
-                token = token.lower()
-                token = self._run_strip_accents(token)
-            split_tokens.extend(self._run_split_on_punc(token))
-
-        output_tokens = whitespace_tokenize(" ".join(split_tokens))
-        return output_tokens
-
-    def _run_strip_accents(self, text):
-        """
-        Strips accents from a piece of text.
-        """
-        text = unicodedata.normalize("NFD", text)
-        output = []
-        for char in text:
-            cat = unicodedata.category(char)
-            if cat == "Mn":
-                continue
-            output.append(char)
-        return "".join(output)
-
-    def _run_split_on_punc(self, text):
-        """
-        Splits punctuation on a piece of text.
-        """
-        chars = list(text)
-        i = 0
-        start_new_word = True
-        output = []
-        while i < len(chars):
-            char = chars[i]
-            if _is_punctuation(char):
-                output.append([char])
-                start_new_word = True
-            else:
-                if start_new_word:
-                    output.append([])
-                start_new_word = False
-                output[-1].append(char)
-            i += 1
-
-        return ["".join(x) for x in output]
-
-    def _tokenize_chinese_chars(self, text):
-        """
-        Adds whitespace around any CJK character.
-        """
-        output = []
-        for char in text:
-            cp = ord(char)
-            if self._is_chinese_char(cp):
-                output.append(" ")
-                output.append(char)
-                output.append(" ")
-            else:
-                output.append(char)
-        return "".join(output)
-
-    def _is_chinese_char(self, cp):
-        """
-        Checks whether CP is the codepoint of a CJK character.
-        """
-
-        # This defines a "chinese character" as anything in the CJK Unicode block:
-        #     https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
-        #
-        # Note that the CJK Unicode block is NOT all Japanese and Korean characters,
-        # despite its name. The modern Korean Hangul alphabet is a different block,
-        # as is Japanese Hiragana and Katakana. Those alphabets are used to write
-        # space-separated words, so they are not treated specially and handled
-        # like the all of the other languages.
-        if ((cp >= 0x4E00 and cp <= 0x9FFF) or  #
-            (cp >= 0x3400 and cp <= 0x4DBF) or  #
-            (cp >= 0x20000 and cp <= 0x2A6DF) or  #
-            (cp >= 0x2A700 and cp <= 0x2B73F) or  #
-            (cp >= 0x2B740 and cp <= 0x2B81F) or  #
-            (cp >= 0x2B820 and cp <= 0x2CEAF) or
-            (cp >= 0xF900 and cp <= 0xFAFF) or  #
-            (cp >= 0x2F800 and cp <= 0x2FA1F)):  #
-            return True
-
-        return False
-
-    def _clean_text(self, text):
-        """
-        Performs invalid character removal and whitespace cleanup on text.
-        """
-        output = []
-        for char in text:
-            cp = ord(char)
-            if cp == 0 or cp == 0xfffd or _is_control(char):
-                continue
-            if _is_whitespace(char):
-                output.append(" ")
-            else:
-                output.append(char)
-        return "".join(output)
-
-
-class WordpieceTokenizer(object):
-    """
-    Runs WordPiece tokenization.
-    Args:
-        vocab (Vocab|dict): Vocab of the word piece tokenizer.
-        unk_token (str):  A specific token to replace all unkown tokens.
-        max_input_chars_per_word (int):  If a word's length is more than
-            max_input_chars_per_word, it will be dealt as unknown word.
-            Default: 100.
-    """
-
-    def __init__(self, vocab, unk_token, max_input_chars_per_word=100):
-        self.vocab = vocab
-        self.unk_token = unk_token
-        self.max_input_chars_per_word = max_input_chars_per_word
-
-    def tokenize(self, text):
-        """
-        Tokenizes a piece of text into its word pieces.
-        This uses a greedy longest-match-first algorithm to perform tokenization
-        using the given vocabulary.
-        Args:
-            text: A single token or whitespace separated tokens. This should have
-                already been passed through `BasicTokenizer`.
-        Returns:
-            list (str): A list of wordpiece tokens.
-        Example:
-            input = "unaffable"
-            output = ["un", "##aff", "##able"]
-        """
-
-        output_tokens = []
-        for token in whitespace_tokenize(text):
-            chars = list(token)
-            if len(chars) > self.max_input_chars_per_word:
-                output_tokens.append(self.unk_token)
-                continue
-
-            is_bad = False
-            start = 0
-            sub_tokens = []
-            while start < len(chars):
-                end = len(chars)
-                cur_substr = None
-                while start < end:
-                    substr = "".join(chars[start:end])
-                    if start > 0:
-                        substr = "##" + substr
-                    if substr in self.vocab:
-                        cur_substr = substr
-                        break
-                    end -= 1
-                if cur_substr is None:
-                    is_bad = True
-                    break
-                sub_tokens.append(cur_substr)
-                start = end
-
-            if is_bad:
-                output_tokens.append(self.unk_token)
-            else:
-                output_tokens.extend(sub_tokens)
-        return output_tokens
 
 
 class RemBertTokenizer(PretrainedTokenizer):
@@ -251,71 +58,9 @@ class RemBertTokenizer(PretrainedTokenizer):
     """
     resource_files_names = {"vocab_file": "vocab.txt"}  # for save_pretrained
     pretrained_resource_files_map = {
-        "vocab_file": {
-            "bert-base-uncased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-uncased-vocab.txt",
-            "bert-large-uncased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-large-uncased-vocab.txt",
-            "bert-base-cased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-cased-vocab.txt",
-            "bert-large-cased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-large-cased-vocab.txt",
-            "bert-base-multilingual-uncased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-multilingual-uncased-vocab.txt",
-            "bert-base-multilingual-cased":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-multilingual-cased-vocab.txt",
-            "bert-base-chinese":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-chinese-vocab.txt",
-            "bert-wwm-chinese":
-            "http://paddlenlp.bj.bcebos.com/models/transformers/bert/bert-wwm-chinese-vocab.txt",
-            "bert-wwm-ext-chinese":
-            "http://paddlenlp.bj.bcebos.com/models/transformers/bert/bert-wwm-ext-chinese-vocab.txt",
-            "macbert-large-chinese":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-chinese-vocab.txt",
-            "macbert-base-chinese":
-            "https://paddle-hapi.bj.bcebos.com/models/bert/bert-base-chinese-vocab.txt",
-            "simbert-base-chinese":
-            "https://paddlenlp.bj.bcebos.com/models/transformers/simbert/vocab.txt",
-        }
+        "vocab_file": {}
     }
-    pretrained_init_configuration = {
-        "bert-base-uncased": {
-            "do_lower_case": True
-        },
-        "bert-large-uncased": {
-            "do_lower_case": True
-        },
-        "bert-base-cased": {
-            "do_lower_case": False
-        },
-        "bert-large-cased": {
-            "do_lower_case": False
-        },
-        "bert-base-multilingual-uncased": {
-            "do_lower_case": True
-        },
-        "bert-base-multilingual-cased": {
-            "do_lower_case": False
-        },
-        "bert-base-chinese": {
-            "do_lower_case": False
-        },
-        "bert-wwm-chinese": {
-            "do_lower_case": False
-        },
-        "bert-wwm-ext-chinese": {
-            "do_lower_case": False
-        },
-        "macbert-large-chinese": {
-            "do_lower_case": False
-        },
-        "macbert-base-chinese": {
-            "do_lower_case": False
-        },
-        "simbert-base-chinese":{
-            "do_lower_case": True
-        },
-    }
+    pretrained_init_configuration = {}
     padding_side = 'right'
 
     def __init__(
@@ -352,6 +97,7 @@ class RemBertTokenizer(PretrainedTokenizer):
                 "vocabulary from a pretrained model please use "
                 "`tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`"
                 .format(vocab_file))
+        self.vocab = self.load_vocabulary(vocab_file, unk_token=unk_token)
         self.do_lower_case = do_lower_case
         self.remove_space = remove_space
         self.keep_accents = keep_accents
@@ -367,22 +113,22 @@ class RemBertTokenizer(PretrainedTokenizer):
         Returns:
             int: the size of vocabulary.
         """
-        return len(self.vocab)
+        return len(self.sp_model)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["sp_model"] = None
+        return state
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.sp_model = spm.SentencePieceProcessor()
+        self.sp_model.Load(self.vocab_file)
 
     def _tokenize(self, text):
-        """
-        End-to-end tokenization for RemBERT models.
-        Args:
-            text (str): The text to be tokenized.
-        
-        Returns:
-            list: A list of string representing converted tokens.
-        """
-        split_tokens = []
-        for token in self.basic_tokenizer.tokenize(text):
-            for sub_token in self.wordpiece_tokenizer.tokenize(token):
-                split_tokens.append(sub_token)
-        return split_tokens
+        """Tokenize a string."""
+        pieces = self.sp_model.EncodeAsPieces(text)
+        return pieces
 
     def tokenize(self, text):
         """
@@ -395,6 +141,14 @@ class RemBertTokenizer(PretrainedTokenizer):
         """
         return self._tokenize(text)
 
+    def _convert_token_to_id(self, token):
+        """Converts a token (str) in an id using the vocab."""
+        return self.sp_model.PieceToId(token)
+
+    def _convert_id_to_token(self, index):
+        """Converts an index (integer) in a token (str) using the vocab."""
+        return self.sp_model.IdToPiece(index)
+
     def convert_tokens_to_string(self, tokens):
         """
         Converts a sequence of tokens (list of string) in a single string. Since
@@ -405,7 +159,7 @@ class RemBertTokenizer(PretrainedTokenizer):
         Returns:
             str: Converted string from tokens.
         """
-        out_string = " ".join(tokens).replace(" ##", "").strip()
+        out_string = self.sp_model.decode_pieces(tokens)
         return out_string
 
     def num_special_tokens_to_add(self, pair=False):
@@ -507,8 +261,7 @@ class RemBertTokenizer(PretrainedTokenizer):
         _cls = [self.cls_token_id]
         if token_ids_1 is None:
             return len(_cls + token_ids_0 + _sep) * [0]
-        return len(_cls + token_ids_0 + _sep) * [0] + len(token_ids_1 +
-                                                          _sep) * [1]
+        return len(_cls + token_ids_0 + _sep) * [0] + len(token_ids_1 + _sep) * [1]
 
     def get_special_tokens_mask(self,
                                 token_ids_0,
@@ -534,9 +287,7 @@ class RemBertTokenizer(PretrainedTokenizer):
                     "You should not supply a second sequence if the provided sequence of "
                     "ids is already formatted with special tokens for the model."
                 )
-            return list(
-                map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id] else 0,
-                    token_ids_0))
+            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id] else 0, token_ids_0))
 
         if token_ids_1 is not None:
             return [1] + ([0] * len(token_ids_0)) + [1] + (

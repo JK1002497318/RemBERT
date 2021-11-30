@@ -144,7 +144,7 @@ class RemBertModel(RemBertPretrainedModel):
     """
 
     def __init__(self,
-                 _name_or_path= "artefacts/pt_model",
+                 _name_or_path="artefacts/pt_model",
                  attention_probs_dropout_prob=0,
                  bos_token_id=312,
                  embedding_dropout_prob=0,
@@ -168,7 +168,8 @@ class RemBertModel(RemBertPretrainedModel):
                  type_vocab_size=2,
                  use_cache=True,
                  vocab_size=250300,
-                 pool_act="tanh"):
+                 pool_act="tanh",
+                 classifier_dropout_prob=0.1):
         super(RemBertModel, self).__init__()
         self.pad_token_id = pad_token_id
         self.initializer_range = initializer_range

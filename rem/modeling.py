@@ -49,32 +49,32 @@ class RemBertPretrainedModel(PretrainedModel):
 
     model_config_file = "model_config.json"
     pretrained_init_configuration = {
-        "rembert": {
-            "_name_or_path": "artefacts/pt_model",
-            "attention_probs_dropout_prob": 0,
-            "bos_token_id": 312,
-            "embedding_dropout_prob": 0,
-            "embedding_size": 256,
-            "eos_token_id": 313,
-            "hidden_act": "gelu",
-            "hidden_dropout_prob": 0,
-            "hidden_size": 1152,
-            "initializer_range": 0.02,
-            "input_embedding_size": 256,
-            "intermediate_size": 4608,
-            "layer_norm_eps": 1e-12,
-            "max_position_embeddings": 512,
-            "model_type": "rembert",
-            "num_attention_heads": 18,
-            "num_hidden_layers": 32,
-            "output_embedding_size": 1664,
-            "pad_token_id": 0,
-            "tie_word_embeddings": False,
-            "transformers_version": "4.4.0.dev0",
-            "type_vocab_size": 2,
-            "use_cache": True,
-            "vocab_size": 250300
-        }
+        # "rembert": {
+        #     "_name_or_path": "artefacts/pt_model",
+        #     "attention_probs_dropout_prob": 0,
+        #     "bos_token_id": 312,
+        #     "embedding_dropout_prob": 0,
+        #     "embedding_size": 256,
+        #     "eos_token_id": 313,
+        #     "hidden_act": "gelu",
+        #     "hidden_dropout_prob": 0,
+        #     "hidden_size": 1152,
+        #     "initializer_range": 0.02,
+        #     "input_embedding_size": 256,
+        #     "intermediate_size": 4608,
+        #     "layer_norm_eps": 1e-12,
+        #     "max_position_embeddings": 512,
+        #     "model_type": "rembert",
+        #     "num_attention_heads": 18,
+        #     "num_hidden_layers": 32,
+        #     "output_embedding_size": 1664,
+        #     "pad_token_id": 0,
+        #     "tie_word_embeddings": False,
+        #     "transformers_version": "4.4.0.dev0",
+        #     "type_vocab_size": 2,
+        #     "use_cache": True,
+        #     "vocab_size": 250300
+        # }
     }
     resource_files_names = {"model_state": "model_state.pdparams"}
     pretrained_resource_files_map = {
